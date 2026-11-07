@@ -31,7 +31,7 @@ A finished report looks like this:
 }
 ```
 
-## How this repo is organised
+## How this repo is organized
 
 There is one git branch per milestone. Check one out and deploy it. That is the whole workflow.
 
