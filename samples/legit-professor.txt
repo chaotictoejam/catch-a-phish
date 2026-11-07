@@ -1,0 +1,26 @@
+From: Dr. Alice Nwosu <a.nwosu@northbridge.example.edu>
+To: cs340-section2@northbridge.example.edu
+Date: Thu, 6 Nov 2025 16:22:50 -0500
+Subject: Office hours moving to Thursdays + exam 2 review
+
+Hi everyone,
+
+Two quick things before the weekend.
+
+First, my office hours are moving. Starting next week they will be Thursdays
+2:00 to 4:00 in Caldwell Hall 312, instead of Tuesday mornings. The Tuesday
+slot conflicted with a faculty meeting that got rescheduled. If Thursday
+afternoon does not work for you, email me and we will find another time.
+
+Second, I will run an optional review session for Exam 2 on Monday at 5:00
+in our usual classroom. Bring questions. I will not be presenting new
+material, so it is only worth coming if you have something specific to ask.
+
+The exam still covers chapters 5 through 8 and the two lab assignments. It
+does not cover the guest lecture.
+
+See you Monday,
+Dr. Nwosu
+
+Office: Caldwell Hall 312
+CS 340, Section 2

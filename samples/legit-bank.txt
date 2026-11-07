@@ -1,0 +1,24 @@
+From: Riverstone Bank <notifications@riverstonebank.example.com>
+To: customer@example.com
+Date: Wed, 5 Nov 2025 14:03:18 -0500
+Subject: Your October statement is ready
+
+Hello,
+
+Your Riverstone Bank statement for October 2025 is now available.
+
+  Account:        Everyday Checking ending in 4418
+  Statement date: October 31, 2025
+  Closing balance: $2,146.73
+
+To view it, open the Riverstone Bank app, or type riverstonebank.example.com
+into your browser yourself and sign in from there.
+
+We did not include a link in this email, and we will never ask you for your
+password, your PIN, or a one-time code by email or phone. If you receive a
+message that does, it is not from us.
+
+You can change how often we send these notices in Settings, then Alerts.
+
+Riverstone Bank
+Member FDIC

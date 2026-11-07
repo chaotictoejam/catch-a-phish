@@ -1,0 +1,26 @@
+From: PayNow Security <alerts@paynow-verify-account.example.net>
+Reply-To: paynow.recovery.team@example.org
+To: customer@example.com
+Date: Tue, 4 Nov 2025 03:12:44 +0000
+Subject: !! URGENT !! YOUR PAYNOW ACCOUNT WILL BE SUSPENDED IN 24 HOURS
+
+Dear Valued Costumer,
+
+We have detect unusual activity on you PayNow account. For you protection,
+your account has been LIMITED and will be PERMANENTLY SUSPENDED within 24
+hours if you do not verify you identity immediately.
+
+CLICK HERE TO RESTORE YOUR ACCOUNT NOW:
+http://paynow-verify-account.example.net/secure/login.php?ref=8821
+
+You must confirm the following information to avoid suspension:
+  - Full name and date of birth
+  - PayNow username and password
+  - Card number, expiry date, and security code
+  - Social security number
+
+Failure to verify will result in permanent closure of you account and loss
+of all remaining balance. This is you final warning.
+
+Sincerely,
+The PayNow Security Department

@@ -1,0 +1,28 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/catch-a-phish.ts",
+  "watch": {
+    "include": ["**"],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "**/*.d.ts",
+      "**/*.js",
+      "tsconfig.json",
+      "package*.json",
+      "node_modules",
+      "samples",
+      "events"
+    ]
+  },
+  "context": {
+    "modelId": "REPLACE-WITH-YOUR-HAIKU-INFERENCE-PROFILE-ID",
+
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/core:validateSnapshotRemovalPolicy": true,
+    "@aws-cdk/aws-s3:createDefaultLoggingPolicy": true,
+    "@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": true,
+    "@aws-cdk/core:newStyleStackSynthesis": true
+  }
+}

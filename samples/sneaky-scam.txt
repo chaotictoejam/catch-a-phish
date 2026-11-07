@@ -1,0 +1,27 @@
+From: Northbridge IT Service Desk <servicedesk@northbridge-edu.example.net>
+Reply-To: servicedesk@northbridge-edu.example.net
+To: j.rivera@northbridge.example.edu
+Date: Mon, 3 Nov 2025 09:41:02 -0500
+Subject: Multi-factor authentication re-enrollment required by Friday
+
+Hi Jordan,
+
+As part of this term's security review, all faculty and staff accounts are
+being re-enrolled in multi-factor authentication. Your department is in the
+first group, so we need you to complete this by Friday, November 7.
+
+Re-enrollment takes about two minutes. Please use the link below:
+
+  https://northbridge-edu.example.net/mfa/reenroll
+
+You will be asked to sign in with your Northbridge username and password,
+then confirm the six-digit code from your authenticator app.
+
+If you do not complete re-enrollment by Friday, your account will be
+temporarily disabled until you contact the Service Desk in person.
+
+Thanks for your help keeping Northbridge secure.
+
+Priya Raman
+Northbridge IT Service Desk
+Extension 4471

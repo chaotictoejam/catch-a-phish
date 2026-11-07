@@ -1,0 +1,25 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# CDK
+cdk.out/
+.cdk.staging/
+*.d.ts
+bin/*.js
+lib/*.js
+
+# Lambda invoke output from the README walkthrough
+out.json
+response.json
+
+# Local AWS config. Never commit credentials.
+.env
+.env.*
+credentials
+*.pem
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
