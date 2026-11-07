@@ -154,26 +154,74 @@ npx cdk bootstrap
 
 If you already use CDK in this account and region, it is already done and this is a no-op.
 
-### 6. Set your model ID
+### 6. Check you can actually reach a model
 
-Open `cdk.json`. You will see this:
+This is the step most likely to stop you, so do it before you deploy anything. It takes about one minute.
+
+Bedrock models are **off by default**, and which ones you are allowed to turn on depends on your account. New accounts are restricted. In practice the newest models are often unavailable, so this project defaults to one that most accounts can get:
 
 ```json
-"modelId": "REPLACE-WITH-YOUR-HAIKU-INFERENCE-PROFILE-ID"
+"modelId": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 ```
 
-Replace it with the current Claude Haiku inference profile ID from your own Bedrock console. Do not copy an ID from a blog post, including this one. Model IDs change with every release, and a stale ID is the single most common reason this tutorial fails.
+That is already set in `cdk.json`. Check that it works for you:
 
-To find yours:
+```bash
+aws bedrock-runtime converse \
+  --model-id us.anthropic.claude-haiku-4-5-20251001-v1:0 \
+  --messages '[{"role":"user","content":[{"text":"Reply with the single word: ok"}]}]' \
+  --inference-config '{"maxTokens":20}' \
+  --query 'output.message.content[0].text'
+```
+
+If that prints something like `"ok"`, you are done with this step. Go to Milestone 1.
+
+### If it fails
+
+You will get one of two errors, and they mean different things.
+
+**`is not available for this account`** means you have no access to that model. Request it:
 
 1. Open the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/) in your region
-2. In the left sidebar, choose **Model catalog**
-3. Find the newest **Claude Haiku** and open it
-4. Copy the **inference profile ID**. It begins with a geography prefix such as `us.`, followed by `anthropic.`
+2. In the left sidebar, scroll down and choose **Model access**
+3. Choose **Modify model access**, find **Claude Haiku 4.5**, check it, then **Next** and **Submit**
+4. Wait for the status to read **Access granted**, then run the command again
 
-While you are there, check the left sidebar for **Model access** and make sure that model says **Access granted**. Bedrock models are off by default. Enabling one is free and usually instant.
+Enabling a model is free. It is often instant, though some models ask for brief use case details first. Say you are a student learning to classify phishing emails.
 
-Reference: [Supported models and inference profile IDs](https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards.html)
+**`ResourceNotFoundException`** means the ID itself is wrong or retired for your region. Get a current one from the list below.
+
+### Finding a model you can use
+
+To see every Claude profile your account knows about:
+
+```bash
+aws bedrock list-inference-profiles --type-equals SYSTEM_DEFINED --max-results 200 \
+  --query "inferenceProfileSummaries[?starts_with(inferenceProfileId,'us.anthropic')].inferenceProfileId" \
+  --output text | tr '\t' '\n' | sort
+```
+
+A word of warning. That list shows what **exists**, not what you can **use**. A model can be listed and still refuse you. The only real test is the `converse` command above, so run it against anything you are considering.
+
+Work down this list and use the first one that answers:
+
+| Model                | ID to try                                       | Notes                                   |
+| -------------------- | ----------------------------------------------- | --------------------------------------- |
+| Claude Haiku 4.5     | `us.anthropic.claude-haiku-4-5-20251001-v1:0`   | The default. Cheap and good enough      |
+| Claude Sonnet 4.6    | `us.anthropic.claude-sonnet-4-6`                | Better reasoning, roughly 3x the cost   |
+| Amazon Nova Lite     | `amazon.nova-lite-v1:0`                         | Last resort. See the warning below      |
+
+Whatever you pick, put it in `cdk.json`, or pass it per deploy without editing the file:
+
+```bash
+npx cdk deploy -c modelId=us.anthropic.claude-sonnet-4-6
+```
+
+Nothing in the code changes. The handler reads the model from an environment variable, and the Converse API has the same request shape for every model on Bedrock, Amazon's own included.
+
+**About Nova.** It needs no inference profile and is usually available, which makes it a genuine fallback if you cannot get any Claude model. But it is noticeably weaker at this task. Nova Micro labels one of the four sample emails `legitimate` when it is phishing. If you fall back to Nova, read the comparison in [Try a different model](#try-a-different-model-and-watch-what-changes) so you know what you are giving up.
+
+Reference: [Model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) and [the model list](https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards.html)
 
 ## Milestone 1: a function that runs
 
@@ -378,26 +426,48 @@ If that prints a version, deploy again. You should see a line like `⚡ Done in 
 
 ### AccessDeniedException on bedrock:InvokeModel
 
-On `milestone-2` before you add the permission, this is expected. That is the whole point of the milestone.
+Two different problems produce this, and the message tells you which.
 
-Anywhere else, work through these:
+**"is not authorized to perform: bedrock:InvokeModel"** is an IAM problem. Your function is not allowed to call the model.
+
+On `milestone-2` before you add the permission, this is expected. That is the whole point of the milestone. Anywhere else:
 
 1. Are both ARNs in the policy? The inference profile **and** the foundation model. Missing the second one is the usual cause
-2. Is `modelId` in `cdk.json` your real ID, not the placeholder?
-3. Did you redeploy after editing the stack? `npx cdk deploy` again
-4. Is model access granted in the Bedrock console, in this region? Check **Model access** in the sidebar
+2. Did you redeploy after editing the stack? Run `npx cdk deploy` again
+3. Does the `modelId` you deployed with match the ARNs in the policy? If you passed `-c modelId=...`, pass the same value every time, or the policy and the call disagree
+
+**"is not available for this account"** is not an IAM problem, and no amount of editing the policy will fix it. Your account has not been granted access to that model. Go to Prerequisites step 6 and either request access or pick a model you can reach.
 
 ### ValidationException, or the model ID is wrong
 
-The error says the model does not exist, you do not have access to it, or the identifier is invalid.
+The error says the model does not exist or the identifier is invalid.
 
-Your `modelId` is wrong or stale. It must be an inference profile ID copied from your own Bedrock console, beginning with a geography prefix such as `us.`. A bare model name without that prefix does not work for on-demand calls. Go back to Prerequisites step 6.
+For Claude models, `modelId` must be an **inference profile** ID with a geography prefix such as `us.`, not a bare model name. Claude is not offered as a plain on-demand model, so `anthropic.claude-haiku-4-5-20251001-v1:0` on its own will fail where `us.anthropic.claude-haiku-4-5-20251001-v1:0` works.
+
+Amazon Nova is the opposite. It takes the bare ID, `amazon.nova-lite-v1:0`, with no prefix.
+
+Model IDs also change with every release and vary by region. Go back to Prerequisites step 6 and list what your account actually has.
 
 ### Thinking, temperature, and swapping models
 
-The handler turns the model's thinking off. That is needed because this model reasons before answering by default, and thinking cannot be combined with `temperature: 0`. Thinking tokens also count against `maxTokens`, so with a 500 token budget the reasoning could use the whole thing and leave no room for the JSON.
+The handler sends `temperature: 0`, which asks the model to be as consistent as it can between runs. Useful for classifying, and useful when you are demonstrating something live.
 
-If you swap `modelId` to a larger model, some of them do not allow thinking to be turned off and will return a 400. In that case, delete the `additionalModelRequestFields` line, delete `temperature: 0`, and raise `maxTokens` to a few thousand.
+The newest Claude models reason before answering and cannot be told not to. Thinking is incompatible with `temperature`, so those models reject the request with a 400 mentioning `temperature` or `thinking.type`. Thinking tokens also count against `maxTokens`, so even without the temperature problem, a 500 token budget could be spent on reasoning before any JSON is written.
+
+If a swap returns a 400, fix it in `lambda/handler.ts`: delete `temperature: 0` and raise `maxTokens` to a few thousand so the reasoning has room. You lose run to run consistency, which is worth knowing before you rely on it on stage.
+
+Confirmed against a real account, so you can use this as a starting point:
+
+| Model               | Handler works unchanged? |
+| ------------------- | ------------------------ |
+| Claude Haiku 4.5    | Yes                      |
+| Claude Sonnet 4.6   | Yes                      |
+| Amazon Nova Lite    | Yes                      |
+| Amazon Nova Micro   | Yes                      |
+| Claude Sonnet 5.5   | No. Rejects `temperature` |
+| Claude Haiku 5.5    | No. Rejects `temperature` |
+
+Do not trust that table over your own account. Model behaviour changes with every release, which is exactly why the handler logs the raw reply as `Model said:` rather than assuming a swap worked.
 
 ### Task timed out
 
@@ -484,6 +554,47 @@ That is a `Topic` construct, a subscription with your email address, and a few l
 
 Start with: [Amazon SNS getting started](https://docs.aws.amazon.com/sns/latest/dg/sns-getting-started.html)
 
-### Try a different model
+### Try a different model, and watch what changes
 
-Change `modelId` in `cdk.json` and redeploy. Does a bigger model catch `sneaky-scam.txt` more reliably? Is it worth the extra cost? That tradeoff is most of the job in real AI engineering. Read the note in Troubleshooting about thinking first.
+This is the most interesting exercise here, so do this one if you only do one.
+
+Everything about the model lives in one value. Swap it and redeploy:
+
+```bash
+npx cdk deploy -c modelId=amazon.nova-lite-v1:0
+npx cdk deploy -c modelId=us.anthropic.claude-sonnet-4-6
+```
+
+That is the whole change. No code edits, not even for Amazon's own model. This is why the handler reads the model from an environment variable and talks to Bedrock through the Converse API, which has the same request shape for every model.
+
+Re-upload the samples after each swap and compare. Four models were run against all four sample emails with the same prompt and the same settings, and the full matrix is in [docs/model-comparison.md](docs/model-comparison.md). Three findings are worth more than a lecture.
+
+**The obvious scam told us nothing.** Every model caught `obvious-scam.txt`, from cheapest to most expensive. Had you tested with only that email, you would have shipped the cheapest model and felt good about it. One email in four did all the discriminating.
+
+**The cheapest model was not worse, it was wrong.** Nova Micro labels `sneaky-scam.txt` as `legitimate`, risk 30, with an empty red flag list. In a real inbox that email goes through, and the tool that let it through reports no concerns at all.
+
+**The highest risk score came from the weakest reasoning.** On that same email, Nova Lite scored 70, higher than either Claude model, reasoning only that there was "a specific deadline and a link to an external site". Claude Sonnet 4.6 scored it 42, the lowest of the three that got it right, and was the only model of the four to name the actual tell:
+
+> sender domain (northbridge-edu.example.net) differs from recipient domain (northbridge.example.edu)
+
+`northbridge-edu.example.net` is not `northbridge.example.edu`. Claude Haiku 4.5 got this backwards and said the sender domain "appears legitimate". Nova did not look at the domain at all.
+
+So the model with the best reasoning produced the least alarming number. With an alert threshold at 50, the correct answer is filtered out and the shallow one fires.
+
+### What to take from this
+
+A number out of a model is not a measurement of that model. It is the model's opinion, and a confident opinion from a weak model looks exactly like a confident opinion from a strong one. You only found out which was which by reading the reasoning on the one hard case.
+
+That is the actual job. Not finding the smartest model, but deciding which failure you can live with, then measuring whether a model gives you that, at a price you can afford, before you ship it.
+
+### Things to try next
+
+- Run the same email three times on the same model. The answers move. Anything you conclude from a single run is noise, including the numbers in that comparison
+- Write an email that Nova Lite gets right and Sonnet overthinks. They exist
+- Pick an alert threshold, then count how many of the four samples land on the wrong side of it for each model
+- Change the prompt instead of the model. Add one line telling it to compare the sender domain against any link domains, then re-run Haiku on `sneaky-scam.txt`. A better prompt is usually cheaper than a better model
+
+### Two practical notes
+
+- Access is per model, per region, and per account. Before you rely on any model here, prove you can reach it with the `converse` command from Prerequisites step 6
+- The newest models think before answering and reject `temperature`, which the handler sends. If a swap returns a 400, read the Troubleshooting note on thinking, temperature, and swapping models

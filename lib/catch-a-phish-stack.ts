@@ -36,15 +36,25 @@ export class CatchAPhishStack extends Stack {
     // ------------------------------------------------------------------
     // Two resources, not one, and this is the part people get wrong.
     //
-    // On Bedrock you do not call a model directly. You call an inference
-    // profile, which routes the request to whichever region has capacity.
-    // So the policy has to allow both the profile you call and the model it
-    // routes to. The * covers those destination regions.
+    // On Bedrock you do not call a Claude model directly. You call an
+    // inference profile, which routes the request to whichever region has
+    // capacity. So the policy has to allow both the profile you call and the
+    // model it routes to. The * covers those destination regions.
+    //
+    // The profile ID carries a geography prefix such as us. or global. The
+    // underlying model ID does not, so strip it for the second ARN. Models
+    // that need no profile, like Amazon Nova, have no prefix to strip and
+    // simply match the second ARN.
+    const foundationModelId = modelId.replace(
+      /^(us|eu|apac|global|ca|au|jp|in)\./,
+      "",
+    );
+
     fn.addToRolePolicy(new PolicyStatement({
       actions: ["bedrock:InvokeModel"],
       resources: [
         `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/${modelId}`,
-        `arn:aws:bedrock:*::foundation-model/${modelId.replace(/^us\./, "")}`,
+        `arn:aws:bedrock:*::foundation-model/${foundationModelId}`,
       ],
     }));
 

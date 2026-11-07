@@ -49,15 +49,11 @@ export async function analyzeEmail(emailText: string): Promise<Analysis> {
       messages: [{ role: "user", content: [{ text: emailText }] }],
       inferenceConfig: {
         // 0 means "be as consistent as you can". Good for classifying.
+        // Note: the newest models think before answering and reject this.
+        // See the README troubleshooting note before you swap models.
         temperature: 0,
         maxTokens: 500,
       },
-      // This model reasons before answering by default. Two reasons to turn
-      // that off here: thinking cannot be combined with temperature, and
-      // thinking tokens count against maxTokens, so the reasoning could use
-      // the whole 500 and leave no room for the JSON. See the README
-      // troubleshooting note before you swap this model for a bigger one.
-      additionalModelRequestFields: { thinking: { type: "disabled" } },
     }),
   );
 
