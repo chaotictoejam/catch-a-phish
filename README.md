@@ -277,7 +277,7 @@ That last point is deliberate. **There is no Bedrock permission on this branch.*
 
 The handler now has two exports. `analyzeEmail(emailText)` does the real work: it sends the email to Bedrock with the Converse API and a system prompt that tells the model what red flags to look for, then parses the JSON that comes back. The `handler` just unwraps `{ email: "..." }` from the event and calls it.
 
-Two details in that code are worth a look. The model is asked for JSON and nothing else, but models are not perfectly obedient, so the code takes the text between the first `{` and the last `}` and returns `verdict: "error"` if that fails to parse. And `thinking` is turned off, because this model reasons before answering by default, which is not compatible with `temperature: 0` and would eat the 500 token budget. More on that in Troubleshooting.
+Two details in that code are worth a look. The model is asked for JSON and nothing else, but models are not perfectly obedient, so the code takes the text between the first `{` and the last `}` and returns `verdict: "error"` if that fails to parse. And `inferenceConfig` sends `temperature: 0`, which asks for the same answer run to run, inside a 500 token budget. That pairing is the thing to check before you swap models: the newest Claude models reason before answering, which rules out `temperature` and would spend the budget on thinking before any JSON is written. More on that in Troubleshooting.
 
 ### Test it, and watch it fail
 

@@ -16,8 +16,10 @@ new CatchAPhishStack(app, "CatchAPhishStack", {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
   },
+  // Kept milestone-neutral on purpose: this file is identical on every
+  // branch, and milestones 1 and 2 have no bucket and no trigger yet.
   description:
-    "Catch a Phish: S3 upload triggers a Lambda that asks Bedrock whether an email is phishing",
+    "Catch a Phish: a tutorial app that asks Amazon Bedrock whether an email is phishing",
 });
 
 // ---------------------------------------------------------------------------
