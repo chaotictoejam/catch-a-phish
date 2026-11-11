@@ -1,21 +1,26 @@
-// Milestone 2: ask the model.
+// Milestone 3: the finished handler.
 //
-// Two exports, and the split between them matters.
+// analyzeEmail is unchanged from milestone 2. Only the handler changed:
+// instead of reading email text out of a hand-written test event, it reads
+// an object from S3 and writes the report back to the same bucket.
 //
-// analyzeEmail(emailText) does the real work: it sends the email to Bedrock
-// and parses the answer. It knows nothing about how the email arrived.
-//
-// handler unwraps { email: "..." } from the test event and calls it. In
-// milestone 3 the handler is the only part that changes, because the email
-// starts arriving from S3 instead. analyzeEmail stays exactly as it is.
+// That is the payoff for keeping the two separate. The thing that talks to
+// the model did not have to know anything about S3.
 
 import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import type { S3Event } from "aws-lambda";
 
-// Created once, outside the handler, so Lambda can reuse it between runs.
+// Created once, outside the handler, so Lambda can reuse them between runs.
 const bedrock = new BedrockRuntimeClient({});
+const s3 = new S3Client({});
 
 // Set by the CDK stack from "modelId" in cdk.json.
 const MODEL_ID = process.env.MODEL_ID!;
@@ -78,14 +83,37 @@ export async function analyzeEmail(emailText: string): Promise<Analysis> {
   }
 }
 
-// The test event is events/scam.json, which looks like { "email": "..." }.
-export const handler = async (event: { email?: string }): Promise<Analysis> => {
-  if (!event.email) {
-    return {
-      verdict: "error",
-      explanation: 'Event had no "email" field. Try --payload file://events/scam.json',
-    };
-  }
+export const handler = async (event: S3Event): Promise<void> => {
+  for (const record of event.Records) {
+    const bucket = record.s3.bucket.name;
 
-  return analyzeEmail(event.email);
+    // S3 URL-encodes object keys in events. A file called "my email.txt"
+    // arrives as "my+email.txt", so decode it before using it.
+    const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
+
+    console.log(`New email: ${key}`);
+
+    const object = await s3.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    const emailText = await object.Body!.transformToString();
+
+    const analysis = await analyzeEmail(emailText);
+
+    // incoming/scam.txt becomes reports/scam.json
+    const reportKey = key
+      .replace("incoming/", "reports/")
+      .replace(/\.txt$/i, ".json");
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: reportKey,
+        Body: JSON.stringify(analysis, null, 2),
+        ContentType: "application/json",
+      }),
+    );
+
+    console.log(`Report saved: ${reportKey}`);
+  }
 };
