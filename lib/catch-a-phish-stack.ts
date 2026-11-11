@@ -1,13 +1,19 @@
-// Milestone 1: a function that runs.
+// Milestone 2: ask the model.
 //
-// This stack creates exactly one thing: a Lambda function. No Bedrock, no
-// bucket, no trigger. The point is to prove the loop works end to end:
-// edit TypeScript, run one command, get a running function in AWS.
+// Three things changed from milestone 1:
+//   1. timeout: 30 seconds, because the default 3 is not enough for a
+//      model call
+//   2. environment: MODEL_ID, which passes the model ID from cdk.json
+//      into the function
+//   3. Nothing else
 //
-// Milestone 2 adds the model call. Milestone 3 adds the bucket and trigger.
+// That last point is deliberate. There is no Bedrock permission on this
+// branch. The function is allowed to run and write logs, and that is it.
+// Your first invoke is supposed to fail with AccessDeniedException. See
+// the marker below, and the README section "Fix it".
 
 import * as path from "node:path";
-import { Stack, StackProps } from "aws-cdk-lib";
+import { Duration, Stack, StackProps } from "aws-cdk-lib";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
@@ -16,23 +22,39 @@ export class CatchAPhishStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // NodejsFunction is the construct worth understanding. You point it at a
-    // TypeScript file; it runs esbuild to bundle that into plain JavaScript
-    // and uploads the result. You never run a build step yourself and you
-    // never see the compiled output.
-    //
-    // Because esbuild is in devDependencies, bundling happens locally in
-    // milliseconds instead of falling back to Docker.
-    new NodejsFunction(this, "AnalyzeEmail", {
-      // Without functionName, CDK generates one. We set it so the README's
-      // aws cli commands can refer to "catch-a-phish" on every milestone.
+    // The model to call. This comes from "modelId" in cdk.json, so you can
+    // change models without touching any code. Paste your own ID from the
+    // Bedrock console. See the README, Prerequisites step 6.
+    const modelId = this.node.tryGetContext("modelId") as string;
+
+    const fn = new NodejsFunction(this, "AnalyzeEmail", {
       functionName: "catch-a-phish",
       runtime: Runtime.NODEJS_22_X,
       entry: path.join(__dirname, "..", "lambda", "handler.ts"),
 
-      // Note what is NOT here: no timeout, so this function gets the default
-      // 3 seconds. That is plenty for a hello world and nowhere near enough
-      // for a model call. Milestone 2 raises it to 30.
+      // A model call takes longer than the 3 second default. Without this
+      // you get "Task timed out after 3.00 seconds" instead of a verdict.
+      timeout: Duration.seconds(30),
+
+      // Environment variables are how configuration reaches your code.
+      // The handler reads this as process.env.MODEL_ID.
+      environment: { MODEL_ID: modelId },
     });
+
+    // ------------------------------------------------------------------
+    // The Bedrock permission goes HERE
+    // ------------------------------------------------------------------
+    // Nothing below this line yet, and that is the point of the milestone.
+    //
+    // A Lambda function starts with permission to run and write logs and
+    // nothing more. Calling Bedrock is a separate permission you have to
+    // grant on purpose. Invoke the function first and read the
+    // AccessDeniedException in the logs, then come back and add it.
+    //
+    // The README section "Fix it" has the code. It starts with
+    // fn.addToRolePolicy(...) and needs one more import:
+    //   import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+    //
+    // Until you add it, fn is declared and never used. That is expected.
   }
 }
